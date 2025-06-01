@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Country Info</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1 class="main-heading">Country Info</h1>
+
+    <div class="search-container">
+      <input type="text" id="userInput" placeholder="Search for a country" onkeydown="checkEnter(event)">
+      <button id="micBtn" class="mic" onclick="startListening()">
+        <img src="https://www.gstatic.com/images/icons/material/system_gm/2x/mic_black_24dp.png" alt="mic">
+      </button>
+    </div>
+
+    <!-- Initially hidden result container -->
+    <div id="result" class="hidden"></div>
+  </div>
+
+  <script>
+    function handleSearch() {
+      const countryName = document.getElementById('userInput').value.trim();
+      const resultDiv = document.getElementById("result");
+
+      if (!countryName) {
+          resultDiv.innerHTML = `<p>Please enter a country name.</p>`;
+          return;
+      }
+
+      const API_URL = `https://restcountries.com/v3.1/name/${countryName}?fullText=true`;
+
+      fetch(API_URL)
+        .then(response => {
+          if (!response.ok) throw new Error("Country not found");
+          return response.json();
+        })
+        .then(data => {
+          const country = data[0];
+          const currencies = Object.keys(country.currencies).map(c => `${c} (${country.currencies[c].name})`).join(', ');
+          const languages = Object.values(country.languages).join(', ');
+
+          resultDiv.innerHTML = `
+            <div class="fade-in">
+                <img src="${country.flags.png}" alt="Flag of ${country.name.common}" width="150">
+                <h2>Name: ${country.name.common}</h2>
+                <h2>Capital: ${country.capital}</h2>
+                <h3>Continent: ${country.continents[0]}</h3>
+                <h3>Currencies: ${currencies}</h3>
+                <h3>Languages: ${languages}</h3>
+                <h3>Population: ${country.population.toLocaleString()}</h3>
+            </div>
+          `;
+
+          // Show the result container after the search is successful
+          resultDiv.classList.remove('hidden');
+        })
+        .catch(error => {
+          resultDiv.innerHTML = `<p>Country not found or an error occurred.</p>`;
+          console.error(error);
+          // Show the result container in case of error
+          resultDiv.classList.remove('hidden');
+        });
+    }
+
+    function startListening() {
+      const recognition = new webkitSpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.start();
+
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('userInput').value = transcript;
+        handleSearch(); // Trigger search after voice input
+      };
+
+      recognition.onerror = function(event) {
+        alert("Error occurred in recognition: " + event.error);
+      };
+    }
+
+    function checkEnter(event) {
+      if (event.key === "Enter") {
+        handleSearch(); // Trigger search when Enter is pressed
+      }
+    }
+  </script>
+</body>
+</html>
